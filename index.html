@@ -527,18 +527,19 @@
       // 選手詳細が表示中なら再描画
       if (selectedPlayer) renderPlayerDetail(selectedPlayer);
     });
+	  function readJSON(file, cb) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try { cb(JSON.parse(e.target.result), null); }
+    catch(err) { cb(null, err.message); }
+  };
+  reader.onerror = function() {
+    cb(null, 'ファイルの読み込みに失敗しました');
+  };
+  reader.readAsText(file);
+}
     event.target.value = '';
   };
-
-  function readJSON(file, cb) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try { cb(JSON.parse(e.target.result), null); }
-      catch(err) { cb(null, err.message); }
-    };
-    reader.onerror = function() { cb(null, 'ファイルの読み込みに失敗しました'); };
-    reader.readAsText(file);
-  }
 
   function updateAvgBadge() {
     const badge = document.getElementById('avg-loaded-badge');
