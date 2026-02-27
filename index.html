@@ -526,8 +526,12 @@
       hideError();
       // 選手詳細が表示中なら再描画
       if (selectedPlayer) renderPlayerDetail(selectedPlayer);
-    });
-	  function readJSON(file, cb) {
+    });	
+	  
+    event.target.value = '';
+  };
+/* ───── JSON util ───── */
+function readJSON(file, cb) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try { cb(JSON.parse(e.target.result), null); }
@@ -538,9 +542,6 @@
   };
   reader.readAsText(file);
 }
-    event.target.value = '';
-  };
-
   function updateAvgBadge() {
     const badge = document.getElementById('avg-loaded-badge');
     if (badge) badge.style.display = teamAvg ? 'inline-block' : 'none';
