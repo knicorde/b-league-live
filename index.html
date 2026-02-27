@@ -467,6 +467,17 @@
   </div>
 </div>
 
+// 互換用：旧コードや保存データ復元時に filterPlayers が呼ばれても落ちないようにする
+window.filterPlayers = function() {
+  // 何か再描画系の関数があれば呼ぶ（存在しなければ何もしない）
+  try {
+    if (typeof window.renderTeam === 'function') return window.renderTeam();
+    if (typeof window.renderPlayers === 'function') return window.renderPlayers();
+    if (typeof window.renderPlayerList === 'function') return window.renderPlayerList();
+    if (typeof window.renderRoster === 'function') return window.renderRoster();
+  } catch (e) {}
+};
+	
 <script>
 (function() {
   'use strict';
