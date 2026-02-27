@@ -1,1 +1,857 @@
-test
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="実況アプリ">
+<title>バスケ実況</title>
+<style>
+  :root {
+    --bg: #f4f4f2;
+    --surface: #ffffff;
+    --border: #e0e0dc;
+    --text-primary: #111110;
+    --text-secondary: #666660;
+    --text-muted: #999994;
+    --accent-home: #1a1a1a;
+    --accent-away: #1a1a1a;
+    --tab-active: #111110;
+    --tab-inactive: #e8e8e4;
+    --pts-color: #c0392b;
+    --reb-color: #2980b9;
+    --ast-color: #27ae60;
+    --highlight: #fffbe6;
+    --btn-file: #2c2c2a;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN', 'Noto Sans JP', sans-serif;
+    overflow: hidden;
+    color: var(--text-primary);
+  }
+
+  /* ===== LAYOUT ===== */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ===== HEADER ===== */
+  #header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-height: 52px;
+  }
+
+  #game-info {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #game-info strong { color: var(--text-primary); font-size: 13px; }
+
+  /* Team tabs */
+  #team-tabs {
+    display: flex;
+    gap: 6px;
+  }
+  .team-tab {
+    padding: 7px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .team-tab.active {
+    background: var(--tab-active);
+    color: #fff;
+  }
+  .team-tab:not(.active) {
+    background: var(--tab-inactive);
+    color: var(--text-secondary);
+  }
+
+  /* Update button */
+  #btn-update {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--btn-file);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #btn-update:active { opacity: 0.7; }
+
+  #btn-avg-update {
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    background: #fff;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #btn-avg-update:active { opacity: 0.7; }
+  #avg-loaded-badge {
+    display: none;
+    font-size: 10px;
+    font-weight: 700;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-radius: 3px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  #file-input { display: none; }
+  #file-input-avg { display: none; }
+
+  /* Delta badges */
+  .delta {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-top: 4px;
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .delta-pos { color: #1a6e2e; background: #e8f5e9; }
+  .delta-neg { color: #b71c1c; background: #ffebee; }
+  .delta-zero { color: var(--text-muted); background: var(--bg); }
+
+  /* chip delta inline */
+  .chip-delta {
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-delta.pos { color: #1a6e2e; }
+  .chip-delta.neg { color: #b71c1c; }
+  .chip-delta.zero { color: var(--text-muted); }
+
+  /* ===== MAIN PANES ===== */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* ===== LEFT PANE ===== */
+  #left-pane {
+    width: 200px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #search-box {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #search-input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text-primary);
+    outline: none;
+    font-family: inherit;
+  }
+  #search-input:focus { border-color: #999; }
+
+  #player-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .player-btn {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .player-btn:active, .player-btn.selected {
+    background: var(--tab-active);
+    border-color: var(--tab-active);
+    color: #fff;
+  }
+  .player-btn.selected .jersey { color: rgba(255,255,255,0.6); }
+
+  .jersey {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 26px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .player-name-btn {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  /* ===== RIGHT PANE ===== */
+  #right-pane {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px;
+    gap: 12px;
+    background: var(--bg);
+  }
+
+  /* Player header */
+  #player-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  #player-number {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--text-muted);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  #player-name {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  /* Stats section */
+  #stats-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .stats-big {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-card.pts { border-top: 3px solid var(--pts-color); }
+  .stat-card.reb { border-top: 3px solid var(--reb-color); }
+  .stat-card.ast { border-top: 3px solid var(--ast-color); }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card.pts .stat-value { color: var(--pts-color); }
+  .stat-card.reb .stat-value { color: var(--reb-color); }
+  .stat-card.ast .stat-value { color: var(--ast-color); }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  .stats-sub {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .stat-chip span { font-weight: 700; }
+  .stat-chip small { color: var(--text-muted); font-size: 11px; margin-left: 2px; }
+
+  /* Season high section */
+  #sh-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sh-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+  }
+
+  .sh-card {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 9px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sh-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .sh-cat {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .sh-value {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .sh-display {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .sh-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Empty / error states */
+  #empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  #empty-state .icon { font-size: 40px; }
+  #empty-state p { font-size: 15px; line-height: 1.5; }
+
+  #error-banner {
+    display: none;
+    background: #ffeaea;
+    border: 1px solid #f5c6c6;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #c0392b;
+    margin: 8px 14px;
+    flex-shrink: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="game-info"><strong>—</strong></div>
+    <div id="team-tabs">
+      <button class="team-tab active" id="tab-home" onclick="switchTeam('home')">HOME</button>
+      <button class="team-tab" id="tab-away" onclick="switchTeam('away')">AWAY</button>
+    </div>
+    <button id="btn-avg-update" onclick="document.getElementById('file-input-avg').click()">📊 チーム平均</button>
+    <span id="avg-loaded-badge">✓ 平均読込済</span>
+    <button id="btn-update" onclick="document.getElementById('file-input').click()">📂 更新</button>
+    <input type="file" id="file-input" accept=".json,application/json" onchange="loadFile(event)">
+    <input type="file" id="file-input-avg" accept=".json,application/json" onchange="loadAvgFile(event)">
+  </div>
+
+  <div id="error-banner"></div>
+
+  <div id="main">
+    <div id="left-pane">
+      <div id="search-box">
+        <input type="search" id="search-input" placeholder="選手検索…" oninput="filterPlayers()" autocomplete="off" autocorrect="off" autocapitalize="off">
+      </div>
+      <div id="player-list"></div>
+    </div>
+
+    <div id="right-pane">
+      <div id="empty-state">
+        <div class="icon">🏀</div>
+        <p>右上の「📂 更新」から<br>bundle.json を読み込んでください</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const LS_KEY     = 'basketball_bundle';
+  const LS_KEY_AVG = 'basketball_team_avg';
+
+  let bundle   = null;
+  let teamAvg  = null;   // { "チーム名": { PTS, REB, ... } }
+  let currentTeamKey = 'home';
+  let selectedPlayer = null;  // full player object
+
+  /* ───── INIT ───── */
+  const savedBundle = (() => { try { return localStorage.getItem(LS_KEY); } catch(e) { return null; } })();
+  const savedAvg    = (() => { try { return localStorage.getItem(LS_KEY_AVG); } catch(e) { return null; } })();
+
+  if (savedAvg) {
+    try { teamAvg = JSON.parse(savedAvg); updateAvgBadge(); } catch(e) { teamAvg = null; }
+  }
+  if (savedBundle) {
+    try {
+      loadBundle(JSON.parse(savedBundle), false);
+    } catch(e) {
+      showError('保存データの読み込みに失敗しました: ' + e.message);
+    }
+  }
+
+  /* ───── FILE LOAD: bundle.json ───── */
+  window.loadFile = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    readJSON(file, function(data, err) {
+      if (err) { showError('bundle.json のパースに失敗しました:\n' + err); return; }
+      try {
+        loadBundle(data, true);
+        hideError();
+      } catch(e2) {
+        showError('bundle.json の読み込みエラー:\n' + e2.message);
+      }
+    });
+    event.target.value = '';
+  };
+
+  /* ───── FILE LOAD: team_avg.json ───── */
+  window.loadAvgFile = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    readJSON(file, function(data, err) {
+      if (err) { showError('team_avg.json のパースに失敗しました:\n' + err); return; }
+      if (typeof data !== 'object' || Array.isArray(data)) {
+        showError('team_avg.json の形式が正しくありません（オブジェクトが必要です）');
+        return;
+      }
+      teamAvg = data;
+      try { localStorage.setItem(LS_KEY_AVG, JSON.stringify(data)); } catch(e) { /* quota */ }
+      updateAvgBadge();
+      hideError();
+      // 選手詳細が表示中なら再描画
+      if (selectedPlayer) renderPlayerDetail(selectedPlayer);
+    });
+    event.target.value = '';
+  };
+
+  function readJSON(file, cb) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try { cb(JSON.parse(e.target.result), null); }
+      catch(err) { cb(null, err.message); }
+    };
+    reader.onerror = function() { cb(null, 'ファイルの読み込みに失敗しました'); };
+    reader.readAsText(file);
+  }
+
+  function updateAvgBadge() {
+    const badge = document.getElementById('avg-loaded-badge');
+    if (badge) badge.style.display = teamAvg ? 'inline-block' : 'none';
+  }
+
+  function loadBundle(data, save) {
+    if (!data.game)  throw new Error('"game" フィールドがありません');
+    if (!data.teams) throw new Error('"teams" フィールドがありません');
+    bundle = data;
+    if (save) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) { /* quota */ }
+    }
+    renderGameInfo();
+    renderTabs();
+    currentTeamKey = 'home';
+    selectedPlayer = null;
+    renderTeam();
+    showEmptyRight();
+  }
+
+  /* ───── GAME INFO ───── */
+  function renderGameInfo() {
+    const g = bundle.game;
+    document.getElementById('game-info').innerHTML =
+      `<strong>${esc(g.home_team || '?')} vs ${esc(g.away_team || '?')}</strong> <span style="color:var(--text-muted)">${esc(g.date || '')}</span>`;
+  }
+
+  /* ───── TABS ───── */
+  function renderTabs() {
+    const g = bundle.game;
+    document.getElementById('tab-home').textContent = g.home_team || 'HOME';
+    document.getElementById('tab-away').textContent = g.away_team || 'AWAY';
+  }
+
+  window.switchTeam = function(side) {
+    currentTeamKey = side;
+    document.getElementById('tab-home').classList.toggle('active', side === 'home');
+    document.getElementById('tab-away').classList.toggle('active', side === 'away');
+    document.getElementById('search-input').value = '';
+    selectedPlayer = null;
+    renderTeam();
+    showEmptyRight();
+  };
+
+  /* ───── PLAYER LIST ───── */
+  function getTeamName(side) {
+    if (!bundle) return null;
+    const g = bundle.game;
+    const name = side === 'home' ? g.home_team : g.away_team;
+    if (bundle.teams[name]) return name;
+    const keys = Object.keys(bundle.teams);
+    return side === 'home' ? keys[0] : (keys[1] || null);
+  }
+
+  function getPlayers(side) {
+    const key = getTeamName(side);
+    if (!key || !bundle.teams[key]) return [];
+    return (bundle.teams[key].players || []).slice().sort((a, b) =>
+      parseInt(a.jersey_number, 10) - parseInt(b.jersey_number, 10)
+    );
+  }
+
+  function renderTeam() { if (bundle) filterPlayers(); }
+
+  window.filterPlayers = function() {
+    const q = document.getElementById('search-input').value.trim();
+    const players = getPlayers(currentTeamKey);
+    const filtered = (q.length >= 2)
+      ? players.filter(p => (p.player_name || '').includes(q) || String(p.jersey_number).includes(q))
+      : players;
+
+    const list = document.getElementById('player-list');
+    list.innerHTML = '';
+    filtered.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'player-btn' + (selectedPlayer && p.team_jba_id === selectedPlayer.team_jba_id ? ' selected' : '');
+      btn.innerHTML = `<span class="jersey">#${esc(String(p.jersey_number))}</span><span class="player-name-btn">${esc(p.player_name)}</span>`;
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedPlayer = p;
+        renderPlayerDetail(p);
+	renderTeamPace();
+      });
+      list.appendChild(btn);
+    });
+  };
+
+  /* ───── PLAYER DETAIL ───── */
+  function getAvgForCurrentTeam() {
+    if (!teamAvg || !bundle) return null;
+    const name = getTeamName(currentTeamKey);
+    return (name && teamAvg[name]) ? teamAvg[name] : null;
+  }
+
+  function deltaHTML(statVal, avgVal) {
+    if (avgVal === undefined || avgVal === null) return '';
+    const sv = parseFloat(statVal);
+    if (isNaN(sv)) return '';
+    const av = parseFloat(avgVal);
+    if (isNaN(av)) return '';
+    const d = sv - av;
+    const sign = d > 0 ? '+' : '';
+    const cls = d > 0 ? 'delta-pos' : (d < 0 ? 'delta-neg' : 'delta-zero');
+    return `<div class="delta ${cls}">${sign}${d.toFixed(1)}</div>`;
+  }
+
+  function chipDeltaHTML(statVal, avgVal) {
+    if (avgVal === undefined || avgVal === null) return '';
+    const sv = parseFloat(statVal);
+    if (isNaN(sv)) return '';
+    const av = parseFloat(avgVal);
+    if (isNaN(av)) return '';
+    const d = sv - av;
+    const sign = d > 0 ? '+' : '';
+    const cls = d > 0 ? 'pos' : (d < 0 ? 'neg' : 'zero');
+    return `<span class="chip-delta ${cls}">${sign}${d.toFixed(1)}</span>`;
+  }
+
+  function renderPlayerDetail(p) {
+    const s   = p.stats || {};
+    const sh  = p.season_high || {};
+    const avg = getAvgForCurrentTeam();
+    const rp  = document.getElementById('right-pane');
+
+    const catLabels = { PTS:'得点', REB:'リバウンド', AST:'アシスト', '3PM':'3P', STL:'スティール', BLK:'ブロック', MIN:'出場時間' };
+
+    // Season high
+    let shHTML = '';
+    Object.keys(sh).forEach(k => {
+      const item = sh[k];
+      if (!item) return;
+      const label    = catLabels[k] || k;
+      const displayVal = item.display || item.value;
+      const meta     = [item.date, item.opponent].filter(Boolean).join(' vs ');
+      shHTML += `
+        <div class="sh-card">
+          <div class="sh-header">
+            <span class="sh-cat">${esc(label)}</span>
+            <span class="sh-value">${esc(String(item.value ?? '—'))}</span>
+          </div>
+          ${String(displayVal) !== String(item.value) ? `<div class="sh-display">${esc(String(displayVal))}</div>` : ''}
+          ${meta ? `<div class="sh-meta">${esc(meta)}</div>` : ''}
+        </div>`;
+    });
+
+    rp.innerHTML = `
+      <div id="player-header">
+        <span id="player-number">#${esc(String(p.jersey_number))}</span>
+        <span id="player-name">${esc(p.player_name)}</span>
+      </div>
+
+      <div id="stats-section">
+        <div class="section-label">今日のスタッツ${avg ? ' <span style="font-weight:400;letter-spacing:0;text-transform:none;font-size:10px;color:var(--text-muted)">（Δ = 選手 − チーム平均）</span>' : ''}</div>
+        <div class="stats-big">
+          <div class="stat-card pts">
+            <div class="stat-value">${fmtStat(s.PTS)}</div>
+            <div class="stat-label">PTS</div>
+            ${avg ? deltaHTML(s.PTS, avg.PTS) : ''}
+          </div>
+          <div class="stat-card reb">
+            <div class="stat-value">${fmtStat(s.REB)}</div>
+            <div class="stat-label">REB</div>
+            ${avg ? deltaHTML(s.REB, avg.REB) : ''}
+          </div>
+          <div class="stat-card ast">
+            <div class="stat-value">${fmtStat(s.AST)}</div>
+            <div class="stat-label">AST</div>
+            ${avg ? deltaHTML(s.AST, avg.AST) : ''}
+          </div>
+        </div>
+        <div class="stats-sub">
+          ${chipWithDelta('3PM', s['3PM'], avg)}
+          ${chipWithDelta('STL', s.STL,   avg)}
+          ${chipWithDelta('BLK', s.BLK,   avg)}
+          ${minChip(s)}
+        </div>
+      </div>
+
+      <div id="sh-section">
+        <div class="section-label">シーズンハイ</div>
+        <div id="sh-grid">
+          ${shHTML || '<div style="color:var(--text-muted);font-size:13px;">データなし</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function showEmptyRight() {
+    document.getElementById('right-pane').innerHTML = `
+      <div id="empty-state">
+        <div class="icon">👈</div>
+        <p>左から選手を選んでください</p>
+      </div>`;
+  }
+
+  /* ───── HELPERS ───── */
+  function fmtStat(v) {
+    if (v === undefined || v === null || v === '') return '—';
+    return String(v);
+  }
+
+  function chipWithDelta(label, val, avg) {
+    const d = avg ? chipDeltaHTML(val, avg[label]) : '';
+    return `<div class="stat-chip"><span>${fmtStat(val)}</span><small>${esc(label)}</small>${d}</div>`;
+  }
+
+  function minChip(s) {
+    const disp = s.MIN_display || s.MIN;
+    if (disp === undefined || disp === null || disp === '') return '';
+    return `<div class="stat-chip"><span>${esc(String(disp))}</span><small>MIN</small></div>`;
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-banner');
+    el.style.display = 'block';
+    el.textContent = '⚠️ ' + msg;
+  }
+
+  function hideError() {
+    document.getElementById('error-banner').style.display = 'none';
+  }
+// ===== チーム合計 vs 平均表示 =====
+
+function nfkc(s){
+  return (s ?? "").toString().normalize("NFKC").trim();
+}
+
+const TEAM_STATS = ["PTS","REB","AST","3PM","STL","BLK"];
+
+function getCurrentTeamName(){
+  if(!bundle) return "";
+  return currentTeamKey === "home"
+    ? bundle.game.home_team
+    : bundle.game.away_team;
+}
+
+function getTeamPlayers(teamName){
+  if(!bundle || !bundle.teams) return [];
+  const target = nfkc(teamName);
+  for(const k of Object.keys(bundle.teams)){
+    if(nfkc(k) === target){
+      return bundle.teams[k].players || [];
+    }
+  }
+  return [];
+}
+
+function sumTeamStats(players){
+  const total = {};
+  TEAM_STATS.forEach(s => total[s] = 0);
+
+  players.forEach(p=>{
+    const st = p.stats || {};
+    TEAM_STATS.forEach(s=>{
+      const v = Number(st[s] ?? 0);
+      if(!isNaN(v)) total[s] += v;
+    });
+  });
+
+  TEAM_STATS.forEach(s=>{
+    total[s] = Math.round(total[s]*10)/10;
+  });
+
+  return total;
+}
+
+function renderTeamPace(){
+  const rightPane = document.getElementById("right-pane");
+  if(!rightPane || !bundle) return;
+
+  const teamName = getCurrentTeamName();
+  const players = getTeamPlayers(teamName);
+  const totals = sumTeamStats(players);
+
+  const avg = window.teamAvgData || null;
+  let html = `<div style="margin-bottom:10px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+  <div style="font-size:12px;color:#666;">${teamName} 今日のチーム合計</div>
+  <div style="margin-top:6px;">`;
+
+  TEAM_STATS.forEach(s=>{
+    const val = totals[s];
+    let deltaHtml = "";
+
+    if(avg){
+      for(const k of Object.keys(avg)){
+        if(nfkc(k) === nfkc(teamName)){
+          const avgVal = avg[k][s];
+          if(avgVal != null){
+            const d = Math.round((val - avgVal)*10)/10;
+            const sign = d > 0 ? "+" : "";
+            deltaHtml = ` <span style="font-size:12px;color:${d>0?'#0a0':'#a00'};">Δ ${sign}${d}</span>`;
+          }
+        }
+      }
+    }
+
+    html += `<span style="margin-right:14px;">
+      <strong>${s}</strong> ${val}${deltaHtml}
+    </span>`;
+  });
+
+  html += `</div></div>`;
+
+  rightPane.insertAdjacentHTML("afterbegin", html);
+}
+})();
+</script>
+</body>
+</html>
