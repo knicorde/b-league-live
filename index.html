@@ -578,6 +578,52 @@ function readJSON(file, cb) {
     showEmptyRight();
   }
 
+// ───── NOTES (player memo) ─────
+const LS_KEY_NOTES = 'basketball_notes_v1';
+let notesData = {};
+
+function notesKeyForPlayer(p) {
+  // team_jba_id 優先、無ければ player_name
+  const id = (p?.team_jba_id || '').trim();
+  if (id) return id;
+  return (p?.player_name || '').trim();
+}
+
+function getMemo(p) {
+  const k = notesKeyForPlayer(p);
+  return (notesData && k && notesData[k]) ? String(notesData[k]) : '';
+}
+
+function setMemo(p, text) {
+  const k = notesKeyForPlayer(p);
+  if (!k) return;
+  notesData[k] = text;
+  try { localStorage.setItem(LS_KEY_NOTES, JSON.stringify(notesData)); } catch(e) {}
+}
+
+window.loadNotesFile = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  readJSON(file, function(data, err) {
+    if (err) { showError('notes.json のパースに失敗しました:\n' + err); return; }
+    if (typeof data !== 'object' || Array.isArray(data)) {
+      showError('notes.json の形式が正しくありません（オブジェクトが必要です）');
+      return;
+    }
+    notesData = data;
+    try { localStorage.setItem(LS_KEY_NOTES, JSON.stringify(notesData)); } catch(e) {}
+    hideError();
+    if (selectedPlayer) renderPlayerDetail(selectedPlayer);
+  });
+  event.target.value = '';
+};
+
+// 起動時に復元
+try {
+  const savedNotes = localStorage.getItem(LS_KEY_NOTES);
+  if (savedNotes) notesData = JSON.parse(savedNotes);
+} catch(e) {}
+	
   /* ───── GAME INFO ───── */
   function renderGameInfo() {
     const g = bundle.game;
