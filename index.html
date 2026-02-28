@@ -199,6 +199,8 @@
   }
   #search-input:focus { border-color: #999; }
 
+<div id="flow-summary" class="flow-summary"></div>
+	
   #player-list {
     flex: 1;
     overflow-y: auto;
@@ -446,7 +448,7 @@ window.memoEdit = function(key) {
   if (next === null) return;
   window.notesData[key] = next;
   try { localStorage.setItem('basketball_notes_v1', JSON.stringify(window.notesData)); } catch(e) {}
-  if (window.selectedPlayer) renderPlayerDetail(window.selectedPlayer);
+  if (window.selectedPlayer) PlayerDetail(window.selectedPlayer);
 };
 
 .flow-summary{
@@ -665,6 +667,36 @@ window.filterPlayers = function() {
     }
   }
 
+
+/* ───── FLOW SUMMARY (auto) ───── */
+function renderFlowSummary() {
+  const box = document.getElementById('flow-summary');
+  if (!box) return;
+
+  if (!bundle || !bundle.teams) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const teamKeys = Object.keys(bundle.teams || {});
+  const teamName = (currentTeamKey && bundle.teams[currentTeamKey])
+    ? currentTeamKey
+    : (teamKeys[0] || '');
+
+  if (!teamName || !bundle.teams[teamName]) {
+    box.innerHTML = `
+      <div class="flow-title">流れサマリー（自動）</div>
+      <div class="flow-sub">チーム未選択</div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="flow-title">流れサマリー（自動）</div>
+    <div class="flow-sub">${esc(teamName)}：表示テストOK</div>
+  `;
+}
+		
   /* ───── FILE LOAD: bundle.json ───── */
   window.loadFile = function(event) {
     const file = event.target.files[0];
@@ -859,6 +891,7 @@ try {
     const filtered = (q.length >= 2)
       ? players.filter(p => (p.player_name || '').includes(q) || String(p.jersey_number).includes(q))
       : players;
+	  renderFlowSummary();
 	  
     const list = document.getElementById('player-list');
     list.innerHTML = '';
