@@ -502,7 +502,19 @@ window.filterPlayers = function() {
 };
 	
 <script>
-(function() {
+
+	// 互換用：保存データ復元時に filterPlayers() が呼ばれても落ちないようにする
+window.filterPlayers = function() {
+  try {
+    // 可能なら一覧を再描画
+    if (typeof window.renderTeam === 'function') return window.renderTeam();
+    if (typeof window.renderPlayers === 'function') return window.renderPlayers();
+    if (typeof window.renderTeamList === 'function') return window.renderTeamList();
+  } catch (e) {}
+  // 何も無ければ何もしない（落ちないのが目的）
+};
+	
+	(function() {
   'use strict';
 
   const LS_KEY     = 'basketball_bundle';
