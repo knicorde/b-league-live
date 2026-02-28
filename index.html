@@ -982,6 +982,54 @@ function renderTeamPace(){
 
   rightPane.insertAdjacentHTML("afterbegin", html);
 }
+
+// ───── BOOT: restore saved data ─────
+(function bootRestore() {
+  // 互換：notesData を window にも載せておく（参照ズレ防止）
+  window.notesData = window.notesData || notesData || {};
+
+  // 1) bundle 復元
+    try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      loadBundle(JSON.parse(saved), false);
+
+      // currentTeamKey が空なら、最初のチームを選ぶ
+      if (!currentTeamKey) {
+        const teamKeys = Object.keys(bundle.teams || {});
+        currentTeamKey = teamKeys[0] || '';
+      }
+    }
+  } catch (e) {
+    try { showError('保存データの読み込みに失敗しました:\n' + e.message); } catch(_) {}
+  }
+
+  // 2) team_avg 復元（あれば）
+  try {
+    const savedAvg = localStorage.getItem(LS_KEY_AVG);
+    if (savedAvg) {
+      teamAvg = JSON.parse(savedAvg);
+      if (typeof updateAvgBadge === 'function') updateAvgBadge();
+    }
+  } catch (e) {}
+
+  // 3) notes 復元（あれば）
+  try {
+    const savedNotes = localStorage.getItem(LS_KEY_NOTES);
+    if (savedNotes) {
+      notesData = JSON.parse(savedNotes);
+      window.notesData = notesData;
+    }
+  } catch (e) {}
+
+  try {
+    if (bundle && typeof window.filterPlayers === 'function') {
+      window.filterPlayers();
+    }
+  } catch (e) {}
+	
+})();
+		
 })();
 </script>
 </body>
