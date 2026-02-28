@@ -577,6 +577,7 @@ window.memoEdit = function(key) {
   window.notesData[key] = next;
   try { localStorage.setItem('basketball_notes_v1', JSON.stringify(window.notesData)); } catch(e) {}
   if (window.selectedPlayer) renderPlayerDetail(window.selectedPlayer);
+else location.reload();
 };
 	  
     event.target.value = '';
@@ -759,6 +760,7 @@ try {
   }
 
   function renderPlayerDetail(p) {
+	  window.selectedPlayer = p;
     const s   = p.stats || {};
     const sh  = p.season_high || {};
     const avg = getAvgForCurrentTeam();
