@@ -431,6 +431,24 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+window.notesData = window.notesData || {};
+
+// 起動時に復元
+try {
+  const saved = localStorage.getItem('basketball_notes_v1');
+  if (saved) window.notesData = JSON.parse(saved);
+} catch(e) {}
+
+window.memoEdit = function(key) {
+  const current = window.notesData[key] ? String(window.notesData[key]) : '';
+  const next = prompt('メモを入力（保存されます）', current);
+  if (next === null) return;
+  window.notesData[key] = next;
+  try { localStorage.setItem('basketball_notes_v1', JSON.stringify(window.notesData)); } catch(e) {}
+  if (window.selectedPlayer) renderPlayerDetail(window.selectedPlayer);
+};
+	
 </style>
 </head>
 <body>
@@ -543,6 +561,23 @@ window.filterPlayers = function() {
       // 選手詳細が表示中なら再描画
       if (selectedPlayer) renderPlayerDetail(selectedPlayer);
     });	
+
+window.notesData = window.notesData || {};
+
+// 起動時に復元
+try {
+  const saved = localStorage.getItem('basketball_notes_v1');
+  if (saved) window.notesData = JSON.parse(saved);
+} catch(e) {}
+
+window.memoEdit = function(key) {
+  const current = window.notesData[key] ? String(window.notesData[key]) : '';
+  const next = prompt('メモを入力（保存されます）', current);
+  if (next === null) return;
+  window.notesData[key] = next;
+  try { localStorage.setItem('basketball_notes_v1', JSON.stringify(window.notesData)); } catch(e) {}
+  if (window.selectedPlayer) renderPlayerDetail(window.selectedPlayer);
+};
 	  
     event.target.value = '';
   };
@@ -728,7 +763,8 @@ try {
     const sh  = p.season_high || {};
     const avg = getAvgForCurrentTeam();
     const rp  = document.getElementById('right-pane');
-
+	const memoKey  = (p.team_jba_id && String(p.team_jba_id).trim()) ? String(p.team_jba_id).trim() : (p.player_name || '');
+    const memoText = (window.notesData && window.notesData[memoKey]) ? String(window.notesData[memoKey]) : '';
     const catLabels = { PTS:'得点', REB:'リバウンド', AST:'アシスト', '3PM':'3P', STL:'スティール', BLK:'ブロック', MIN:'出場時間' };
 	  
     // Season high
@@ -789,6 +825,15 @@ try {
           ${shHTML || '<div style="color:var(--text-muted);font-size:13px;">データなし</div>'}
         </div>
       </div>
+
+		<div id="memo-section">
+        <div class="section-label">一言メモ</div>
+        <div class="memo-box">
+          <div class="memo-body">${memoText ? esc(memoText) : '<span style="color:var(--text-muted)">メモなし</span>'}</div>
+          <button class="memo-btn" type="button" onclick="window.memoEdit && window.memoEdit('${memoKey.replace(/'/g,"\\'")}')">編集</button>
+        </div>
+      </div>
+	  
     `;
   }
 
