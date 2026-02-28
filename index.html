@@ -441,11 +441,16 @@
       <button class="team-tab active" id="tab-home" onclick="switchTeam('home')">HOME</button>
       <button class="team-tab" id="tab-away" onclick="switchTeam('away')">AWAY</button>
     </div>
-    <button id="btn-avg-update" onclick="document.getElementById('file-input-avg').click()">📊 チーム平均</button>
-    <span id="avg-loaded-badge">✓ 平均読込済</span>
-    <button id="btn-update" onclick="document.getElementById('file-input').click()">📂 更新</button>
-    <input type="file" id="file-input" accept=".json,application/json" onchange="loadFile(event)">
-    <input type="file" id="file-input-avg" accept=".json,application/json" onchange="loadAvgFile(event)">
+    <div id="controls">
+  <button type="button" onclick="document.getElementById('file-input-bundle').click()">📦 bundle.json 読込</button>
+  <input type="file" id="file-input-bundle" accept="application/json,.json" style="display:none" onchange="loadFile(event)">
+
+  <button type="button" onclick="document.getElementById('file-input-avg').click()">📊 team_avg.json 読込</button>
+  <input type="file" id="file-input-avg" accept="application/json,.json" style="display:none" onchange="loadAvgFile(event)">
+
+  <button type="button" onclick="document.getElementById('file-input-notes').click()">📝 notes.json 読込</button>
+  <input type="file" id="file-input-notes" accept="application/json,.json" style="display:none" onchange="loadNotesFile(event)">
+	</div>
   </div>
 
   <div id="error-banner"></div>
