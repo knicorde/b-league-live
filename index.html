@@ -730,26 +730,6 @@ try {
     const rp  = document.getElementById('right-pane');
 
     const catLabels = { PTS:'得点', REB:'リバウンド', AST:'アシスト', '3PM':'3P', STL:'スティール', BLK:'ブロック', MIN:'出場時間' };
-
-// MEMO box（選手詳細の最上段に）
-const memo = getMemo(player);
-html += `
-  <div class="memo-box">
-    <div class="memo-head">
-      <div class="memo-title">MEMO</div>
-      <button class="memo-edit" type="button" onclick="window._editMemo()">編集</button>
-    </div>
-    <div class="memo-body">${memo ? escapeHtml(memo) : '<span class="muted">メモなし</span>'}</div>
-  </div>
-`;
-
-window._editMemo = function() {
-  const current = getMemo(player);
-  const next = prompt('メモを入力（保存されます）', current || '');
-  if (next === null) return;
-  setMemo(player, next);
-  renderPlayerDetail(player);
-};
 	  
     // Season high
     let shHTML = '';
@@ -904,7 +884,7 @@ function renderTeamPace(){
   const players = getTeamPlayers(teamName);
   const totals = sumTeamStats(players);
 
-  const avg = window.teamAvgData || null;
+  const avg = window.teamAvg || null;
   let html = `<div style="margin-bottom:10px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;">
   <div style="font-size:12px;color:#666;">${teamName} 今日のチーム合計</div>
   <div style="margin-top:6px;">`;
