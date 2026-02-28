@@ -620,10 +620,13 @@ function readJSON(file, cb) {
     }
     renderGameInfo();
     renderTabs();
-    currentTeamKey = 'home';
+    const keys = Object.keys(bundle.teams || {});
+	currentTeamKey = keys[0] || '';
     selectedPlayer = null;
-    renderTeam();
+    if (currentTeamKey) renderTeam();
+	else showEmptyLeft?.();
     showEmptyRight();
+	try { localStorage.setItem(LS_KEY_TEAM, currentTeamKey); } catch(e) {}
   }
 
 // ───── NOTES (player memo) ─────
@@ -703,6 +706,10 @@ try {
     const name = side === 'home' ? g.home_team : g.away_team;
     if (bundle.teams[name]) return name;
     const keys = Object.keys(bundle.teams);
+	let savedTeam = '';
+	try { savedTeam = localStorage.getItem(LS_KEY_TEAM) || ''; } catch(e) {}
+	const keys = Object.keys(bundle.teams || {});
+	currentTeamKey = (savedTeam && keys.includes(savedTeam)) ? savedTeam : (keys[0] || '');
     return side === 'home' ? keys[0] : (keys[1] || null);
   }
 
@@ -723,6 +730,8 @@ try {
       ? players.filter(p => (p.player_name || '').includes(q) || String(p.jersey_number).includes(q))
       : players;
 
+	const LS_KEY_TEAM = 'basketball_team_key';
+	  
     const list = document.getElementById('player-list');
     list.innerHTML = '';
     filtered.forEach(p => {
