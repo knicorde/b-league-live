@@ -448,6 +448,30 @@ window.memoEdit = function(key) {
   try { localStorage.setItem('basketball_notes_v1', JSON.stringify(window.notesData)); } catch(e) {}
   if (window.selectedPlayer) renderPlayerDetail(window.selectedPlayer);
 };
+
+.flow-summary{
+  border:1px solid rgba(0,0,0,.10);
+  border-radius:12px;
+  padding:10px;
+  margin:10px 0;
+  background:rgba(0,0,0,.02);
+}
+.flow-title{font-weight:700;font-size:13px;margin-bottom:6px;}
+.flow-sub{font-size:12px;color:var(--text-muted);margin-bottom:8px;line-height:1.3;}
+.flow-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;}
+.flow-chip{
+  font-size:12px;
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.10);
+  background:#fff;
+}
+.flow-chip.pos{border-color:rgba(0,150,0,.25);}
+.flow-chip.neg{border-color:rgba(180,0,0,.25);}
+.flow-list{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px;}
+.flow-item{font-size:12px;display:flex;justify-content:space-between;gap:10px;}
+.flow-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.flow-val{font-variant-numeric:tabular-nums;color:var(--text-muted);}
 	
 </style>
 </head>
@@ -475,7 +499,8 @@ window.memoEdit = function(key) {
 
   <div id="main">
     <div id="left-pane">
-      <div id="search-box">
+		<div id="flow-summary" class="flow-summary"></div>
+		<div id="search-box">
         <input type="search" id="search-input" placeholder="選手検索…" oninput="filterPlayers()" autocomplete="off" autocorrect="off" autocapitalize="off">
       </div>
       <div id="player-list"></div>
@@ -490,6 +515,103 @@ window.memoEdit = function(key) {
   </div>
 </div>
 
+function renderFlowSummary() {
+  const box = document.getElementById('flow-summary');
+  if (!box) return;
+
+  // bundle と currentTeamKey が無いなら空表示
+  if (!bundle || !bundle.teams || !currentTeamKey || !bundle.teams[currentTeamKey]) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const teamName = currentTeamKey;
+  const players = (bundle.teams[teamName].players || []).slice();
+
+  // team_avg が無い場合でも「上振れ下振れ」だけは出せるようにする
+  const avg = (typeof getAvgForCurrentTeam === 'function') ? getAvgForCurrentTeam() : null;
+
+  const STAT_LABEL = { PTS:'得点', REB:'REB', AST:'AST', '3PM':'3P', STL:'STL', BLK:'BLK', MIN:'MIN' };
+  const STATS = ['PTS','REB','AST','3PM','STL','BLK','MIN'];
+
+  // “総合上振れ/下振れ” を作る（各スタッツのΔを合算してスコア化）
+  // ※ MIN は強い偏りが出やすいので重みを弱める
+  function scoreOf(p) {
+    if (!avg) return 0;
+    const s = p.stats || {};
+    let sc = 0;
+    sc += (Number(s.PTS||0) - Number(avg.PTS||0)) * 1.0;
+    sc += (Number(s.REB||0) - Number(avg.REB||0)) * 0.9;
+    sc += (Number(s.AST||0) - Number(avg.AST||0)) * 0.9;
+    sc += (Number(s['3PM']||0) - Number(avg['3PM']||0)) * 0.8;
+    sc += (Number(s.STL||0) - Number(avg.STL||0)) * 0.6;
+    sc += (Number(s.BLK||0) - Number(avg.BLK||0)) * 0.6;
+    sc += (Number(s.MIN||0) - Number(avg.MIN||0)) * 0.15;
+    return Math.round(sc * 10) / 10;
+  }
+
+  // チームとして「平均との差が大きい項目」を出す（全員平均との差の平均を取る）
+  function teamDelta(stat) {
+    if (!avg) return null;
+    const deltas = players.map(p => {
+      const v = Number((p.stats||{})[stat] || 0);
+      const a = Number(avg[stat] || 0);
+      return v - a;
+    });
+    const m = deltas.reduce((x,y)=>x+y,0) / (deltas.length || 1);
+    return Math.round(m * 10) / 10;
+  }
+
+  // 上振れ/下振れTOP3
+  const scored = players.map(p => ({ p, sc: scoreOf(p) }));
+  scored.sort((a,b)=>b.sc-a.sc);
+  const topPos = scored.slice(0,3);
+  const topNeg = scored.slice().reverse().slice(0,3);
+
+  // チームの傾向（平均との差が大きい順に3つ）
+  let trend = [];
+  if (avg) {
+    trend = STATS.map(st => ({ st, d: teamDelta(st) }))
+      .filter(x => x.d !== null)
+      .sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))
+      .slice(0,3);
+  }
+
+  const trendHTML = avg ? `
+    <div class="flow-row">
+      ${trend.map(x=>{
+        const cls = x.d >= 0 ? 'pos' : 'neg';
+        const sign = x.d > 0 ? '+' : '';
+        return `<span class="flow-chip ${cls}">${STAT_LABEL[x.st]} Δ${sign}${x.d}</span>`;
+      }).join('')}
+    </div>
+  ` : `<div class="flow-sub">※ team_avg.json を読むと「チーム傾向（Δ）」が出ます</div>`;
+
+  function itemHTML(x) {
+    const name = (x.p.player_name || '').trim();
+    const sign = x.sc > 0 ? '+' : '';
+    const cls  = x.sc >= 0 ? 'pos' : 'neg';
+    return `
+      <div class="flow-item">
+        <div class="flow-name">${esc(name)}</div>
+        <div class="flow-val"><span class="${cls}">総合Δ ${sign}${x.sc}</span></div>
+      </div>
+    `;
+  }
+
+  box.innerHTML = `
+    <div class="flow-title">流れサマリー（自動）</div>
+    <div class="flow-sub">${esc(teamName)}：平均比の“上振れ/下振れ”と傾向</div>
+    ${trendHTML}
+    <div class="flow-list">
+      <div class="flow-sub" style="margin-top:6px;">上振れ（平均より良い）</div>
+      ${topPos.map(itemHTML).join('')}
+      <div class="flow-sub" style="margin-top:10px;">下振れ（平均より苦しい）</div>
+      ${topNeg.map(itemHTML).join('')}
+    </div>
+  `;
+}
+	
 // 互換用：旧コードや保存データ復元時に filterPlayers が呼ばれても落ちないようにする
 window.filterPlayers = function() {
   // 何か再描画系の関数があれば呼ぶ（存在しなければ何もしない）
@@ -499,6 +621,7 @@ window.filterPlayers = function() {
     if (typeof window.renderPlayerList === 'function') return window.renderPlayerList();
     if (typeof window.renderRoster === 'function') return window.renderRoster();
   } catch (e) {}
+	renderFlowSummary();
 };
 	
 <script>
