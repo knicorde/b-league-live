@@ -519,7 +519,8 @@ window.filterPlayers = function() {
 
   const LS_KEY     = 'basketball_bundle';
   const LS_KEY_AVG = 'basketball_team_avg';
-
+　const LS_KEY_TEAM = 'bas	etball_team_key';
+		
   let bundle   = null;
   let teamAvg  = null;   // { "チーム名": { PTS, REB, ... } }
   let currentTeamKey = 'home';
@@ -714,15 +715,14 @@ try {
     : (teamKeys[1] || teamKeys[0] || null);
 }
 
-  function getPlayers(side) {
-    const key = getTeamName(side);
-    if (!key || !bundle.teams[key]) return [];
-    return (bundle.teams[key].players || []).slice().sort((a, b) =>
-      parseInt(a.jersey_number, 10) - parseInt(b.jersey_number, 10)
-    );
-  }
+  function getPlayers(teamKey) {
+  if (!bundle || !bundle.teams || !teamKey || !bundle.teams[teamKey]) return [];
+  return (bundle.teams[teamKey].players || []).slice().sort((a, b) =>
+    parseInt(a.jersey_number, 10) - parseInt(b.jersey_number, 10)
+  );
+}
 
-  function renderTeam() { if (bundle) filterPlayers(); }
+  function renderTeam() { if (bundle) window.filterPlayers(); }
 
   window.filterPlayers = function() {
     const q = document.getElementById('search-input').value.trim();
@@ -730,8 +730,6 @@ try {
     const filtered = (q.length >= 2)
       ? players.filter(p => (p.player_name || '').includes(q) || String(p.jersey_number).includes(q))
       : players;
-
-	const LS_KEY_TEAM = 'basketball_team_key';
 	  
     const list = document.getElementById('player-list');
     list.innerHTML = '';
