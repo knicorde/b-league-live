@@ -701,17 +701,18 @@ try {
 
   /* ───── PLAYER LIST ───── */
   function getTeamName(side) {
-    if (!bundle) return null;
-    const g = bundle.game;
-    const name = side === 'home' ? g.home_team : g.away_team;
-    if (bundle.teams[name]) return name;
-    const keys = Object.keys(bundle.teams);
-	let savedTeam = '';
-	try { savedTeam = localStorage.getItem(LS_KEY_TEAM) || ''; } catch(e) {}
-	const keys = Object.keys(bundle.teams || {});
-	currentTeamKey = (savedTeam && keys.includes(savedTeam)) ? savedTeam : (keys[0] || '');
-    return side === 'home' ? keys[0] : (keys[1] || null);
-  }
+  if (!bundle || !bundle.teams) return null;
+
+  const g = bundle.game;
+  const name = side === 'home' ? g.home_team : g.away_team;
+
+  if (bundle.teams[name]) return name;
+
+  const teamKeys = Object.keys(bundle.teams);
+  return side === 'home'
+    ? (teamKeys[0] || null)
+    : (teamKeys[1] || teamKeys[0] || null);
+}
 
   function getPlayers(side) {
     const key = getTeamName(side);
