@@ -503,6 +503,7 @@ window.memoEdit = function(key) {
 		<div id="search-box">
         <input type="search" id="search-input" placeholder="選手検索…" oninput="filterPlayers()" autocomplete="off" autocorrect="off" autocapitalize="off">
       </div>
+		<div id="flow-summary" class="flow-summary"></div>
       <div id="player-list"></div>
     </div>
 
@@ -742,6 +743,10 @@ function readJSON(file, cb) {
     if (save) {
       try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) { /* quota */ }
     }
+	  if (!currentTeamKey) {
+  const teamKeys = Object.keys(bundle.teams || {});
+  currentTeamKey = teamKeys[0] || '';
+}
     renderGameInfo();
     renderTabs();
     const keys = Object.keys(bundle.teams || {});
@@ -751,6 +756,7 @@ function readJSON(file, cb) {
 	else showEmptyLeft?.();
     showEmptyRight();
 	try { localStorage.setItem(LS_KEY_TEAM, currentTeamKey); } catch(e) {}
+	  renderFlowSummary();
   }
 
 // ───── NOTES (player memo) ─────
